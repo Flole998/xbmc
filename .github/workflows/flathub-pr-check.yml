@@ -1,0 +1,68 @@
+name: Build Flatpak CI
+
+on:
+  pull_request:
+    branches:
+      - master
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  # auto-cancel previous runs if the pull request is force-push updated
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-flatpack:
+    runs-on: ubuntu-latest
+    steps:
+    # PR/CI
+    - name: Checkout relevant repo
+      uses: actions/checkout@v4
+      with:
+        path: "xbmc"
+    # Flathub config
+    - name: Checkout Flathub config
+      uses: actions/checkout@v4
+      with:
+        repository: 'flathub/tv.kodi.Kodi'
+        submodules: true
+        path: "flathub"
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        DEBIAN_FRONTEND=noninteractive sudo apt-get install --force-yes -y cmake git build-essential ccache lsb-release flatpak-builder flatpak
+    - name: Start DBUS
+      run: sudo service dbus start
+    - name: Install yq
+      run: sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+    - name: Add flatpak repo
+      run: sudo flatpak remote-add flathub https://flathub.org/repo/flathub.flatpakrepo
+    - name: Install flatpak SDKs
+      run: |
+        sudo flatpak -y install flathub org.freedesktop.Sdk//22.08
+        sudo flatpak -y install flathub org.freedesktop.Platform//22.08
+        sudo flatpak -y install flathub org.freedesktop.Sdk.Extension.openjdk17//22.08
+    - name: Patch flatpak build conf
+      run: |
+        # Remove git repo from local copy
+        yq -i eval 'del(.modules[].sources[] | select(.type == "git" and .url == "https://github.com/xbmc/xbmc.git"))' flathub/tv.kodi.Kodi.yml
+        # Add local git repo copy
+        yq -i eval '(.modules[] | select(.name == "kodi") | .sources) |= [{"type": "dir", "path": "'"$GITHUB_WORKSPACE"'/xbmc"}] + .' flathub/tv.kodi.Kodi.yml
+        # Remove addons from build
+        yq -i 'del(.modules[] | select(. == "addons/*")) | .' flathub/tv.kodi.Kodi.yml
+    - id: restore-ccache
+      name: Restore ccache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          /tmp/ccache
+        key: ${{ runner.os }}-ccache
+    - name: build
+      run: CCACHE_DIR=/tmp/ccache cd flathub && flatpak-builder build-dir --user --ccache --force-clean tv.kodi.Kodi.yml
+    - name: Save ccache
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          /tmp/ccache
+        key: ${{ steps.restore-ccache.outputs.cache-primary-key }}
