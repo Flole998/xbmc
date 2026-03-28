@@ -16,6 +16,9 @@ on:
         required: false
         default: false
 
+permissions:
+  contents: read
+
 # Environment variables
 env:
   CMAKE_BUILD_DIR: ./build
@@ -115,3 +118,98 @@ jobs:
       - name: Check build artifacts
         run: |
           ls -lh ${{ env.CMAKE_BUILD_DIR }}
+
+  build-android:
+    name: Android Build (${{ matrix.android_abi }})
+    runs-on: ubuntu-latest
+    env:
+      PARALLEL_JOBS: 4
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - android_abi: armeabi-v7a
+            android_host: arm-linux-androideabi
+          - android_abi: arm64-v8a
+            android_host: aarch64-linux-android
+          - android_abi: x86
+            android_host: i686-linux-android
+          - android_abi: x86_64
+            android_host: x86_64-linux-android
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Android build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y autoconf automake autopoint cmake curl default-jdk-headless gettext gawk libcurl4-gnutls-dev libtool make nasm ninja-build pkg-config unzip zip
+
+      - name: Setup Android SDK/NDK
+        env:
+          NDK_VERSION: 28.2.13676358
+          # Minimum Android API level used for NDK toolchain/dependencies
+          NDK_API: 24
+          TARGET_SDK: 36
+          BUILD_TOOLS: 36.0.0
+        run: |
+          if [ -n "${ANDROID_SDK_ROOT}" ]; then
+            SDK_PATH="${ANDROID_SDK_ROOT}"
+          elif [ -n "${ANDROID_HOME}" ]; then
+            SDK_PATH="${ANDROID_HOME}"
+          elif [ -d "/usr/local/lib/android/sdk" ]; then
+            SDK_PATH="/usr/local/lib/android/sdk"
+          else
+            echo "Unable to find Android SDK path"
+            exit 1
+          fi
+
+          if [ -x "${SDK_PATH}/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="${SDK_PATH}/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -x "${SDK_PATH}/cmdline-tools/bin/sdkmanager" ]; then
+            SDKMANAGER="${SDK_PATH}/cmdline-tools/bin/sdkmanager"
+          else
+            echo "Unable to locate sdkmanager under ${SDK_PATH}"
+            exit 1
+          fi
+
+          yes | "${SDKMANAGER}" --licenses >/dev/null
+          "${SDKMANAGER}" \
+            "platform-tools" \
+            "ndk;${NDK_VERSION}" \
+            "platforms;android-${TARGET_SDK}" \
+            "build-tools;${BUILD_TOOLS}"
+
+          echo "SDK_PATH=${SDK_PATH}" >> "${GITHUB_ENV}"
+          echo "NDK_PATH=${SDK_PATH}/ndk/${NDK_VERSION}" >> "${GITHUB_ENV}"
+          echo "NDK_API=${NDK_API}" >> "${GITHUB_ENV}"
+
+      - name: Build Android depends (${{ matrix.android_abi }})
+        run: |
+          cd tools/depends
+          ./bootstrap
+          ./configure \
+            --with-tarballs="${GITHUB_WORKSPACE}/.android-tarballs" \
+            --host=${{ matrix.android_host }} \
+            --with-sdk-path="${SDK_PATH}" \
+            --with-ndk-path="${NDK_PATH}" \
+            --with-ndk-api="${NDK_API}" \
+            --prefix="${GITHUB_WORKSPACE}/tools/depends/xbmc-depends"
+          make -j"${PARALLEL_JOBS}"
+
+      - name: Configure Android Kodi build (${{ matrix.android_abi }})
+        run: |
+          make -C tools/depends/target/cmakebuildsys BUILD_DIR="${GITHUB_WORKSPACE}/build-android-${{ matrix.android_abi }}"
+
+      - name: Build Android Kodi (${{ matrix.android_abi }})
+        run: |
+          cd "${GITHUB_WORKSPACE}/build-android-${{ matrix.android_abi }}"
+          make -j"${PARALLEL_JOBS}"
+
+      - name: Check Android build artifacts (${{ matrix.android_abi }})
+        run: |
+          ls -lh "${GITHUB_WORKSPACE}/build-android-${{ matrix.android_abi }}"
