@@ -126,7 +126,6 @@ jobs:
       PARALLEL_JOBS: 4
       CCACHE_DIR: ${{ github.workspace }}/.ccache-android-${{ matrix.android_abi }}
       CCACHE_MAXSIZE: 1G
-      CCACHE_COMPRESS: true
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -166,7 +165,7 @@ jobs:
         run: |
           mkdir -p "${{ env.CCACHE_DIR }}"
           ccache -M "${{ env.CCACHE_MAXSIZE }}"
-          ccache -o compression="${{ env.CCACHE_COMPRESS }}"
+          ccache -o compression=true
 
       - name: Verify Java/Ant toolchain
         run: |
