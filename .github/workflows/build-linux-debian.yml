@@ -124,6 +124,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PARALLEL_JOBS: 4
+      CCACHE_DIR: ${{ github.workspace }}/.ccache-android-${{ matrix.android_abi }}
+      CCACHE_MAXSIZE: 1G
+      CCACHE_COMPRESS: true
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -147,7 +150,23 @@ jobs:
       - name: Install Android build dependencies
         run: |
           sudo apt update
-          sudo apt install -y ant ant-optional autoconf automake autopoint cmake curl default-jdk-headless gettext gawk libcurl4-gnutls-dev libtool make nasm ninja-build pkg-config unzip zip
+          sudo apt install -y ant ant-optional autoconf automake autopoint ccache cmake curl default-jdk-headless gettext gawk libcurl4-gnutls-dev libtool make nasm ninja-build pkg-config unzip zip
+
+      - name: Restore Android ccache from GitHub cache
+        id: ccache-cache-android
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-android-${{ matrix.android_abi }}-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-android-${{ matrix.android_abi }}-${{ github.ref_name }}-
+            ccache-${{ runner.os }}-android-${{ matrix.android_abi }}-
+
+      - name: Configure Android ccache
+        run: |
+          mkdir -p "${{ env.CCACHE_DIR }}"
+          ccache -M "${{ env.CCACHE_MAXSIZE }}"
+          ccache -o compression="${{ env.CCACHE_COMPRESS }}"
 
       - name: Verify Java/Ant toolchain
         run: |
@@ -226,3 +245,14 @@ jobs:
       - name: Check Android build artifacts (${{ matrix.android_abi }})
         run: |
           ls -lh "${GITHUB_WORKSPACE}/build-android-${{ matrix.android_abi }}"
+
+      - name: Display Android ccache statistics
+        run: |
+          ccache -s
+
+      - name: Save Android ccache to GitHub cache
+        if: always() && steps.ccache-cache-android.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.ccache-cache-android.outputs.cache-primary-key }}
