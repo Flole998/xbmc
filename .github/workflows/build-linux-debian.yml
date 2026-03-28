@@ -152,6 +152,8 @@ jobs:
         env:
           NDK_VERSION: 28.2.13676358
           NDK_API: 24
+          TARGET_SDK: 36
+          BUILD_TOOLS: 36.0.0
         run: |
           if [ -n "${ANDROID_SDK_ROOT}" ]; then
             SDK_PATH="${ANDROID_SDK_ROOT}"
@@ -174,7 +176,11 @@ jobs:
           fi
 
           yes | "${SDKMANAGER}" --licenses >/dev/null
-          "${SDKMANAGER}" "ndk;${NDK_VERSION}" "platforms;android-${NDK_API}"
+          "${SDKMANAGER}" \
+            "platform-tools" \
+            "ndk;${NDK_VERSION}" \
+            "platforms;android-${TARGET_SDK}" \
+            "build-tools;${BUILD_TOOLS}"
 
           echo "SDK_PATH=${SDK_PATH}" >> "${GITHUB_ENV}"
           echo "NDK_PATH=${SDK_PATH}/ndk/${NDK_VERSION}" >> "${GITHUB_ENV}"
