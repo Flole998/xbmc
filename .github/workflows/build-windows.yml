@@ -9,11 +9,6 @@ on:
       - master
       - windows-ci-test
   workflow_dispatch:
-    inputs:
-      debug_enabled:
-        description: 'Run with debugging enabled'
-        required: false
-        default: false
 
 permissions:
   contents: read
@@ -60,7 +55,7 @@ jobs:
           dir project\Win32BuildSetup\*Setup-*.exe
 
       - name: Upload installer artifact
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: kodi-windows-installer
