@@ -16,6 +16,9 @@ on:
         required: false
         default: false
 
+permissions:
+  contents: read
+
 # Environment variables
 env:
   CMAKE_BUILD_DIR: ./build
@@ -186,7 +189,7 @@ jobs:
             --with-ndk-path="${NDK_PATH}" \
             --with-ndk-api="${NDK_API}" \
             --prefix="${GITHUB_WORKSPACE}/tools/depends/xbmc-depends"
-          make -j${{ env.PARALLEL_JOBS }}
+          make -j"${PARALLEL_JOBS}"
 
       - name: Configure Android Kodi build (${{ matrix.android_abi }})
         run: |
@@ -195,7 +198,7 @@ jobs:
       - name: Build Android Kodi (${{ matrix.android_abi }})
         run: |
           cd "${GITHUB_WORKSPACE}/build-android-${{ matrix.android_abi }}"
-          make -j${{ env.PARALLEL_JOBS }}
+          make -j"${PARALLEL_JOBS}"
 
       - name: Check Android build artifacts (${{ matrix.android_abi }})
         run: |
