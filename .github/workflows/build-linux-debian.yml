@@ -155,7 +155,9 @@ jobs:
           javac -version
           ant -version
           test -f /usr/share/ant/lib/ant-launcher.jar
-          JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          JAVAC_PATH="$(readlink -f "$(command -v javac)")"
+          JAVA_BIN_DIR="$(dirname "${JAVAC_PATH}")"
+          JAVA_HOME="$(dirname "${JAVA_BIN_DIR}")"
           echo "JAVA_HOME=${JAVA_HOME}" >> "${GITHUB_ENV}"
           echo "ANT_HOME=/usr/share/ant" >> "${GITHUB_ENV}"
           echo "PATH=/usr/share/ant/bin:${PATH}" >> "${GITHUB_ENV}"
