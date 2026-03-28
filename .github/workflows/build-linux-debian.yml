@@ -147,7 +147,18 @@ jobs:
       - name: Install Android build dependencies
         run: |
           sudo apt update
-          sudo apt install -y autoconf automake autopoint cmake curl default-jdk-headless gettext gawk libcurl4-gnutls-dev libtool make nasm ninja-build pkg-config unzip zip
+          sudo apt install -y ant ant-optional autoconf automake autopoint cmake curl default-jdk-headless gettext gawk libcurl4-gnutls-dev libtool make nasm ninja-build pkg-config unzip zip
+
+      - name: Verify Java/Ant toolchain
+        run: |
+          java -version
+          javac -version
+          ant -version
+          test -f /usr/share/ant/lib/ant-launcher.jar
+          JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          echo "JAVA_HOME=${JAVA_HOME}" >> "${GITHUB_ENV}"
+          echo "ANT_HOME=/usr/share/ant" >> "${GITHUB_ENV}"
+          echo "PATH=/usr/share/ant/bin:${PATH}" >> "${GITHUB_ENV}"
 
       - name: Setup Android SDK/NDK
         env:
