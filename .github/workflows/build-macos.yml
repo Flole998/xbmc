@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir -p "${{ env.CCACHE_DIR }}"
           ccache -M "${{ env.CCACHE_MAXSIZE }}"
-          ccache -o compression=${{ env.CCACHE_COMPRESS }}
+          ccache -o compression=true
           ccache -z
 
       - name: Prepare macOS shared directories
