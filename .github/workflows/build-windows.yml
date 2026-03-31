@@ -17,6 +17,8 @@ env:
   KODI_MIRROR: https://mirrors.kodi.tv
   CCACHE_DIR: ${{ github.workspace }}\.ccache
   CCACHE_CACHE_SIZE: 1G
+  CCACHE_DEBUG: 1
+  CCACHE_DEBUGDIR: ${{ github.workspace }}\.ccache\debug
 
 jobs:
   build:
@@ -42,6 +44,11 @@ jobs:
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
+
+      - name: Prepare ccache debug directory
+        shell: cmd
+        run: |
+          if not exist "${{ env.CCACHE_DEBUGDIR }}" mkdir "${{ env.CCACHE_DEBUGDIR }}"
 
       - name: Download Windows dependencies
         shell: cmd
@@ -83,3 +90,25 @@ jobs:
           name: kodi-windows-installer
           path: project/Win32BuildSetup/*Setup-*.exe
           if-no-files-found: warn
+
+      - name: Output ccache debug files
+        if: always()
+        shell: cmd
+        run: |
+          echo ===== CCACHE DEBUG FILES =====
+          if exist "${{ env.CCACHE_DEBUGDIR }}" (
+            dir /s "${{ env.CCACHE_DEBUGDIR }}"
+            dir /b /s "${{ env.CCACHE_DEBUGDIR }}\*.ccache-log" >nul 2>&1
+            if errorlevel 1 (
+              echo No *.ccache-log files found in CCACHE_DEBUGDIR.
+            ) else (
+              for /r "${{ env.CCACHE_DEBUGDIR }}" %%F in (*.ccache-log) do (
+                echo.
+                echo ----- %%F -----
+                type "%%F"
+              )
+            )
+          ) else (
+            echo CCACHE_DEBUGDIR not found: ${{ env.CCACHE_DEBUGDIR }}
+          )
+          echo ===== END CCACHE DEBUG FILES =====

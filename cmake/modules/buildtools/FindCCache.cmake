@@ -30,7 +30,9 @@ if(CCACHE_FOUND)
           "UseMultiToolTask=true"
           "DebugInformationFormat=OldStyle"
       )
-      set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+      # Replace /Zi with /Z7 in compiler flags
+      string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+      string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
   else()
     # Supports Unix Makefiles, Ninja and Xcode
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" PARENT_SCOPE)

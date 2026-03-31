@@ -226,8 +226,7 @@ set(optional_buildtools CCache
                         ClangFormat>=9.0
                         ClangTidy
                         Cppcheck
-                        IncludeWhatYouUse
-                        Sccache)
+                        IncludeWhatYouUse)
 
 # Find build tools - Optional and required
 core_optional_dep(${optional_buildtools})
