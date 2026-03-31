@@ -30,7 +30,6 @@ jobs:
     env:
       CCACHE_DIR: /Users/runner/.ccache-kodi-${{ matrix.platform_dir }}
       CCACHE_MAXSIZE: 2G
-      CCACHE_COMPRESS: true
     strategy:
       fail-fast: false
       matrix:
