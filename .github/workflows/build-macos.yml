@@ -26,7 +26,7 @@ jobs:
   build:
     name: macOS Xcode Build (${{ matrix.platform_dir }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 360
+    timeout-minutes: 240
     env:
       CCACHE_DIR: /Users/runner/.ccache-kodi-${{ matrix.platform_dir }}
       CCACHE_MAXSIZE: 2G
@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir -p "${{ env.CCACHE_DIR }}"
           ccache -M "${{ env.CCACHE_MAXSIZE }}"
-          ccache -o compression="${{ env.CCACHE_COMPRESS }}"
+          ccache -o compression=${{ env.CCACHE_COMPRESS }}
           ccache -z
 
       - name: Prepare macOS shared directories
