@@ -16,7 +16,7 @@ permissions:
 env:
   KODI_MIRROR: https://mirrors.kodi.tv
   CCACHE_DIR: ${{ github.workspace }}\.ccache
-  CCACHE_CACHE_SIZE: 1G
+  CCACHE_CACHE_SIZE: 1.5G
   CCACHE_DEBUG: 1
   CCACHE_DEBUGDIR: ${{ github.workspace }}\.ccache\debug
 

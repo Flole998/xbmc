@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 240
     env:
       CCACHE_DIR: /Users/runner/.ccache-kodi-${{ matrix.platform_dir }}
-      CCACHE_MAXSIZE: 1G
+      CCACHE_MAXSIZE: 1.5G
     strategy:
       fail-fast: false
       matrix:
