@@ -219,7 +219,19 @@ jobs:
           echo "NDK_PATH=${SDK_PATH}/ndk/${NDK_VERSION}" >> "${GITHUB_ENV}"
           echo "NDK_API=${NDK_API}" >> "${GITHUB_ENV}"
 
+      - name: Restore Android depends from GitHub cache
+        id: depends-cache-android
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.android-tarballs
+            ${{ github.workspace }}/tools/depends/xbmc-depends
+            ${{ github.workspace }}/tools/depends/native
+            ${{ github.workspace }}/tools/depends/target
+          key: android-depends-${{ runner.os }}-${{ matrix.android_abi }}-${{ hashFiles('tools/depends/**', 'tools/buildsteps/defaultenv', 'tools/buildsteps/android*/**') }}
+
       - name: Build Android depends (${{ matrix.android_abi }})
+        if: steps.depends-cache-android.outputs.cache-hit != 'true'
         run: |
           cd tools/depends
           ./bootstrap
@@ -255,3 +267,14 @@ jobs:
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.ccache-cache-android.outputs.cache-primary-key }}
+
+      - name: Save Android depends to GitHub cache
+        if: always() && steps.depends-cache-android.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.android-tarballs
+            ${{ github.workspace }}/tools/depends/xbmc-depends
+            ${{ github.workspace }}/tools/depends/native
+            ${{ github.workspace }}/tools/depends/target
+          key: ${{ steps.depends-cache-android.outputs.cache-primary-key }}

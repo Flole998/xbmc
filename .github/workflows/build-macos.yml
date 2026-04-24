@@ -79,6 +79,18 @@ jobs:
         run: |
           mkdir -p /Users/Shared/xbmc-depends/tarballs
 
+      - name: Restore macOS depends from GitHub cache
+        id: depends-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /Users/Shared/xbmc-depends/tarballs
+            ${{ github.workspace }}/tools/depends/xbmc-depends
+            ${{ github.workspace }}/tools/depends/native
+            ${{ github.workspace }}/tools/depends/target
+            ${{ github.workspace }}/tools/depends/.last_success_revision
+          key: macos-depends-${{ matrix.platform_dir }}-${{ hashFiles('tools/depends/**', 'tools/buildsteps/defaultenv', format('tools/buildsteps/{0}/**', matrix.platform_dir)) }}
+
       - name: Prepare depends
         run: |
           tools/buildsteps/${{ matrix.platform_dir }}/prepare-depends
@@ -126,6 +138,18 @@ jobs:
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.ccache-cache.outputs.cache-primary-key }}
+
+      - name: Save macOS depends to GitHub cache
+        if: always() && steps.depends-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /Users/Shared/xbmc-depends/tarballs
+            ${{ github.workspace }}/tools/depends/xbmc-depends
+            ${{ github.workspace }}/tools/depends/native
+            ${{ github.workspace }}/tools/depends/target
+            ${{ github.workspace }}/tools/depends/.last_success_revision
+          key: ${{ steps.depends-cache.outputs.cache-primary-key }}
 
       - name: Upload DMG artifact
         if: ${{ !cancelled() }}
