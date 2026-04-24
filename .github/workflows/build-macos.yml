@@ -89,7 +89,7 @@ jobs:
             ${{ github.workspace }}/tools/depends/native
             ${{ github.workspace }}/tools/depends/target
             ${{ github.workspace }}/tools/depends/.last_success_revision
-          key: macos-depends-${{ matrix.platform_dir }}-${{ hashFiles('tools/depends/**', 'tools/buildsteps/defaultenv', format('tools/buildsteps/{0}/**', matrix.platform_dir)) }}
+          key: v1-macos-depends-${{ matrix.platform_dir }}-${{ hashFiles('tools/depends/**', 'tools/buildsteps/defaultenv', format('tools/buildsteps/{0}/**', matrix.platform_dir)) }}
 
       - name: Prepare depends
         run: |
