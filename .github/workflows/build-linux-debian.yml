@@ -228,7 +228,7 @@ jobs:
             ${{ github.workspace }}/tools/depends/xbmc-depends
             ${{ github.workspace }}/tools/depends/native
             ${{ github.workspace }}/tools/depends/target
-          key: v1-android-depends-${{ runner.os }}-${{ matrix.android_abi }}-${{ hashFiles('tools/depends/**', 'tools/buildsteps/defaultenv', 'tools/buildsteps/android*/**') }}
+          key: v1-android-depends-${{ runner.os }}-${{ matrix.android_abi }}-${{ hashFiles('tools/depends/**', '!tools/depends/xbmc-depends/**', '!tools/depends/native/**', '!tools/depends/target/**', 'tools/buildsteps/defaultenv', 'tools/buildsteps/android*/**') }}
 
       - name: Build Android depends (${{ matrix.android_abi }})
         if: steps.depends-cache-android.outputs.cache-hit != 'true'
@@ -269,7 +269,7 @@ jobs:
           key: ${{ steps.ccache-cache-android.outputs.cache-primary-key }}
 
       - name: Save Android depends to GitHub cache
-        if: always() && steps.depends-cache-android.outputs.cache-hit != 'true'
+        if: success() && steps.depends-cache-android.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
