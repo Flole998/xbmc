@@ -263,8 +263,7 @@ void CPVRClient::SetConnectionState(PVR_CONNECTION_STATE state)
 
   if (m_connectionState == PVR_CONNECTION_STATE_CONNECTED)
     m_ignoreClient = false;
-  else if (m_connectionState == PVR_CONNECTION_STATE_CONNECTING &&
-           m_prevConnectionState == PVR_CONNECTION_STATE_UNKNOWN)
+  else if (m_connectionState != PVR_CONNECTION_STATE_UNKNOWN)
     m_ignoreClient = true; // ignore until connected
 }
 
