@@ -1,0 +1,114 @@
+name: Build - Windows
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+      - debian-ci-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  KODI_MIRROR: https://mirrors.kodi.tv
+  CCACHE_DIR: ${{ github.workspace }}\.ccache
+  CCACHE_CACHE_SIZE: 1.5G
+  CCACHE_DEBUG: 1
+  CCACHE_DEBUGDIR: ${{ github.workspace }}\.ccache\debug
+
+jobs:
+  build:
+    name: Windows Build
+    runs-on: windows-2022
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore ccache from GitHub cache
+        id: ccache-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ github.ref_name }}-v1
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ github.ref_name }}-
+            ccache-${{ runner.os }}-
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+
+      - name: Prepare ccache debug directory
+        shell: cmd
+        run: |
+          if not exist "${{ env.CCACHE_DEBUGDIR }}" mkdir "${{ env.CCACHE_DEBUGDIR }}"
+
+      - name: Download Windows dependencies
+        shell: cmd
+        run: |
+          cd tools\buildsteps\windows\x64
+          call download-dependencies.bat
+          if errorlevel 1 exit /b 1
+
+      - name: Setup Windows build environment
+        shell: cmd
+        run: |
+          cd tools\buildsteps\windows\x64
+          call download-msys2.bat
+          if errorlevel 1 exit /b 1
+
+      - name: Build Kodi installer
+        shell: cmd
+        run: |
+          cd tools\buildsteps\windows\x64
+          call BuildSetup.bat nobinaryaddons clean noprompt
+          if errorlevel 1 exit /b 1
+
+      - name: Save ccache to GitHub cache
+        if: always() && steps.ccache-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.ccache-cache.outputs.cache-primary-key }}
+
+      - name: Check build artifacts
+        shell: cmd
+        run: |
+          dir project\Win32BuildSetup\*Setup-*.exe
+
+      - name: Upload installer artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodi-windows-installer
+          path: project/Win32BuildSetup/*Setup-*.exe
+          if-no-files-found: warn
+
+      - name: Output ccache debug files
+        if: always()
+        shell: cmd
+        run: |
+          echo ===== CCACHE DEBUG FILES =====
+          if exist "${{ env.CCACHE_DEBUGDIR }}" (
+            dir /s "${{ env.CCACHE_DEBUGDIR }}"
+            dir /b /s "${{ env.CCACHE_DEBUGDIR }}\*.ccache-log" >nul 2>&1
+            if errorlevel 1 (
+              echo No *.ccache-log files found in CCACHE_DEBUGDIR.
+            ) else (
+              for /r "${{ env.CCACHE_DEBUGDIR }}" %%F in (*.ccache-log) do (
+                echo.
+                echo ----- %%F -----
+                type "%%F"
+              )
+            )
+          ) else (
+            echo CCACHE_DEBUGDIR not found: ${{ env.CCACHE_DEBUGDIR }}
+          )
+          echo ===== END CCACHE DEBUG FILES =====
